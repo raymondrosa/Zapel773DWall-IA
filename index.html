@@ -3582,6 +3582,10 @@ Muros: "dir":"x" = muro paralelo a X sobre la línea de ejes Y número "at" (0 a
 "dir":"y" = muro paralelo a Y sobre la línea de ejes X número "at", entre las líneas de ejes Y "from" y "to".
 Los índices de ejes comienzan en 0 (el primer eje). "s0" y "s1" son entrepisos, desde 1 (primer nivel) hasta el último, ambos inclusive. "t" = espesor (in o mm).
 Si ys está vacío solo puede haber muros dir "x" con at 0.
+Alternativa para plantas poligonales regulares (octágono, hexágono, pentágono...): usa "shape":"polygon" en lugar de xs/ys:
+{"shape":"polygon","units":"IM","sides":8,"side":10,"stories":[10,10,10],"columns":{"b":18,"h":18},"center":true,"spokes":true,"ring":false,"beams":{"b":12,"h":24},"slab":{"t":6,"q":60},"fc":4,"base":"fixed","walls":{"t":8},"notes":"..."}
+"side" = longitud de cada lado (o "radius" = distancia del centro a cada vértice) en ft o m. Hay una columna en cada vértice y, si "center":true, una en el centro. "spokes":true = vigas del centro a cada vértice en cada nivel; "ring":true = vigas perimetrales entre vértices. "walls":{"t":8} = muros en todos los lados (opcional "sides":[0,1,...] para solo algunos y "s0","s1" para entrepisos); omite "walls" si no hay muros.
+Si la estructura pedida no cabe en ninguno de los dos esquemas (geometría irregular, curvas, etc.), responde SOLO {"error":"qué no se puede representar"}; nunca la aproximes con otra forma.
 Reglas: si el usuario no da unidades usa "IM". Si faltan datos, supón valores típicos (columnas 18 in, vigas 14x24 in, losa 6 in, q 50 psf, fc 4 ksi, base fixed) y dilo en "notes".
 Unidades y tipos (muy importante): con units="SI" usa xs/ys/stories en METROS (6, 3.2), columns y beams en MILÍMETROS (450, 300x600), slab.t en MILÍMETROS (150), slab.q en kPa (2.4) y fc en MPa (28). Con units="IM" usa xs/ys/stories en PIES (20, 12), columns y beams en PULGADAS (18, 14x24), slab.t en PULGADAS (6), slab.q en psf (50) y fc en ksi (4). "base" debe ser exactamente "fixed" o "pinned". "walls" debe ser una lista JSON (puede ser []), y "slab.t" y "slab.q" deben ser números (no null, no objetos).
 Si te dan un número de vanos y un ancho (por ejemplo «3 vanos de 20 ft»), repite el ancho en el arreglo. «xs», «ys» y «stories» deben ser SIEMPRE arreglos JSON de números (por ejemplo "stories":[12,12]), nunca un número suelto. Nunca inventes elementos que el usuario no pidió (muros, losas) salvo losa por defecto si habla de edificio con pisos.
@@ -3592,6 +3596,8 @@ let IA_LAST=null;
 
 function iaClean(s){
  if(!s||typeof s!=='object'||Array.isArray(s))throw new Error('La especificación debe ser un objeto JSON.');
+ if(typeof s.error==='string'&&s.error)throw new Error('La IA indicó que no puede representar esa estructura: '+s.error.slice(0,300));
+ if(s.shape==='polygon')return iaPoly(s);
  const av=[],u=s.units==='SI'?'SI':'IM';
  const num=(v,def,lo,hi)=>{if(v==null||v==='')return def;v=+v;return isFinite(v)?Math.min(hi,Math.max(lo,v)):def};
  const arr=(a,max)=>Array.isArray(a)?a.slice(0,max).map(v=>+v).filter(v=>isFinite(v)&&v>0):[];
@@ -3646,6 +3652,52 @@ function iaClean(s){
  const d={app:'zapel-3d',v:5,units:u,N:n,B:b,MUROS:mw,LOSAS:ls,CARGAS:cs,ZAPATAS:[],PLATEAS:[],ANOT:[],GRUPOS:[],sw:true};
  const resumen=(pl?'Pórtico plano':'Edificio')+': '+xs.length+' vano(s) en X'+(pl?'':' × '+ys.length+' en Y')+', '+st.length+' nivel(es) · '+
   n.length+' nudos, '+b.length+' barras, '+mw.length+' muros, '+ls.length+' losas.';
+ return{d,resumen,av,notes:typeof s.notes=='string'?s.notes.slice(0,300):'',spec:{units:u}}}
+
+/* Planta poligonal regular: columnas en vértices (+centro), vigas radiales y/o perimetrales, muros por lado, losa triangular por lado */
+function iaPoly(s){
+ const av=[],u=s.units==='SI'?'SI':'IM',IM=u=='IM';
+ const num=(v,def,lo,hi)=>{v=+v;return isFinite(v)?Math.min(hi,Math.max(lo,v)):def};
+ const Lm=v=>IM?v*0.3048:v,sec=v=>IM?v*0.0254:v/1000;
+ const n=Math.round(num(s.sides,8,3,16)),st=(Array.isArray(s.stories)?s.stories.slice(0,40):[]).map(v=>+v).filter(v=>isFinite(v)&&v>0);
+ if(!st.length)throw new Error('Falta «stories» (alturas de entrepiso).');
+ let R;const side=+s.side,rad=+s.radius;
+ if(isFinite(side)&&side>0)R=Lm(Math.min(side,500))/(2*Math.sin(Math.PI/n));
+ else if(isFinite(rad)&&rad>0)R=Lm(Math.min(rad,500));
+ else{R=Lm(IM?15:5);av.push('No se indicó el tamaño del polígono: se supuso radio de '+(IM?'15 ft':'5 m')+'.')}
+ const sr=IM?[4,120]:[100,3000],secO=(o,db,dh)=>{o=o&&typeof o=='object'?o:{};return{b:sec(num(o.b,db,sr[0],sr[1])),h:sec(num(o.h,dh,sr[0],sr[1]))}};
+ const col=secO(s.columns,IM?18:450,IM?18:450),bm=secO(s.beams,IM?12:300,IM?24:600);
+ const fc=num(s.fc,IM?4:28,IM?2:15,IM?15:100)*(IM?6.89476:1),E=+(4.7*Math.sqrt(fc)).toPrecision(5);
+ const Z=[0];st.forEach(v=>Z.push(Z[Z.length-1]+Lm(v)));const nz=Z.length,pin=s.base=='pinned';
+ const cen=s.center!==false,spk=s.spokes!==false,ring=s.ring===true;
+ const m=n+1,Zr=[0,0,0,0,0,0],raw=[],keep=[];
+ for(let k=0;k<nz;k++)for(let i=0;i<=n;i++){
+  const a=2*Math.PI*(i-1)/n+Math.PI/n,x=i==0?R:R+R*Math.cos(a),y=i==0?R:R+R*Math.sin(a);
+  const r=k==0?(pin?[1,1,1,0,0,0]:[1,1,1,1,1,1]):Zr.slice();
+  raw.push({x:+x.toFixed(6),y:+y.toFixed(6),z:Z[k],r,f:Zr.slice()});keep.push(!(k==0&&i==0&&!cen))}
+ const map=[];let c=0;raw.forEach((_,q)=>{map.push(keep[q]?c++:-1)});
+ const nodes=raw.filter((_,q)=>keep[q]),id=(k,i)=>map[k*m+i];
+ const b=[],bar=(i,j,o)=>{if(i>=0&&j>=0)b.push({i,j,b:o.b,h:o.h,fc,E})};
+ for(let k=0;k<nz-1;k++)for(let i=0;i<=n;i++){if(i==0&&!cen)continue;bar(id(k,i),id(k+1,i),col)}
+ for(let k=1;k<nz;k++){
+  if(spk)for(let i=1;i<=n;i++)bar(id(k,0),id(k,i),bm);
+  if(ring)for(let i=1;i<=n;i++)bar(id(k,i),id(k,i%n+1),bm)}
+ if(!spk&&!ring)av.push('Sin vigas: las columnas no quedan unidas entre sí en cada nivel.');
+ const mw=[];
+ if(s.walls){
+  const W=typeof s.walls=='object'?s.walls:{},t=sec(num(W.t,IM?8:200,IM?2:50,IM?48:1200));
+  let sides=Array.isArray(W.sides)?W.sides.map(v=>Math.round(+v)).filter(v=>v>=0&&v<n):[...Array(n).keys()];
+  let s0=Math.round(num(W.s0,1,1,nz-1)),s1=Math.round(num(W.s1,nz-1,1,nz-1));if(s0>s1)[s0,s1]=[s1,s0];
+  sides.forEach(q=>{for(let k=s0;k<=s1;k++)mw.push({n:[id(k-1,q+1),id(k-1,q%n+1+1>n?1:q+2),id(k,q%n+1+1>n?1:q+2),id(k,q+1)],t,mat:'H',fc,E,gw:24,rig:1,fix:k==1?1:0})})}
+ const ls=[],cs=[];
+ if(s.slab&&typeof s.slab=='object'){
+  const t=sec(num(s.slab.t,IM?6:150,IM?2:50,IM?36:900)),q=num(s.slab.q,IM?50:2.4,0,IM?1000:50)*(IM?0.04788:1);
+  for(let k=1;k<nz;k++)for(let i=1;i<=n;i++){
+   const A=raw[k*m],B1=raw[k*m+i],C=raw[k*m+i%n+1],pts=[[A.x,A.y],[B1.x,B1.y],[C.x,C.y]];
+   ls.push({z:Z[k],pts,t,mat:'H',fc,E,gw:24});if(q>0)cs.push({z:Z[k],pts:pts.map(p=>p.slice()),q})}}
+ const d={app:'zapel-3d',v:5,units:u,N:nodes,B:b,MUROS:mw,LOSAS:ls,CARGAS:cs,ZAPATAS:[],PLATEAS:[],ANOT:[],GRUPOS:[],sw:true};
+ const lado=2*R*Math.sin(Math.PI/n)/(IM?0.3048:1);
+ const resumen='Polígono de '+n+' lados (lado '+lado.toFixed(2)+(IM?' ft':' m')+'), '+st.length+' nivel(es) · '+nodes.length+' nudos, '+b.length+' barras, '+mw.length+' muros, '+ls.length+' losas.';
  return{d,resumen,av,notes:typeof s.notes=='string'?s.notes.slice(0,300):'',spec:{units:u}}}
 
 function iaExtraeJSON(t){
