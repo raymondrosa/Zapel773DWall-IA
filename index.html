@@ -189,9 +189,15 @@ body{flex-direction:row;overflow:hidden}
 #iaw .smact{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--bd);flex:0 0 auto}
 #iaw .smact button{min-height:38px;flex:1 1 auto;min-width:0}
 #iaw label{display:block;margin:7px 0 2px}#iaw label.ck{display:flex;gap:5px;align-items:center;margin:4px 0}
-#iaw input[type=text],#iaw input[type=password],#iaw textarea{width:100%;box-sizing:border-box}
+#iaw input[type=text],#iaw input[type=password],#iaw select,#iaw textarea{width:100%;box-sizing:border-box}
 #iaw textarea{resize:vertical}#iaSt{margin-top:8px;font-size:12px;line-height:1.45;overflow-wrap:anywhere}
 #iaJson{font:11px ui-monospace,Consolas,monospace}
+@media(max-width:760px){
+ #iaw{padding:6px}
+ #iaw .smbox{max-height:calc(100dvh - 12px);padding:10px;border-radius:8px}
+ #iaw .smact{padding-bottom:calc(2px + env(safe-area-inset-bottom,0px))}
+ #iaw .smact button{flex:1 1 100%}
+}
 </style></head><body>
 <div id="side">
 <div id="tb">
@@ -208,7 +214,7 @@ body{flex-direction:row;overflow:hidden}
 <span class="sp"></span>
 <span class="grup"><span class="lb">Archivo</span><button type="button" id="b_clr">Nuevo</button><button type="button" id="b_open">Abrir</button><button type="button" id="b_save">Guardar</button></span>
 <span class="sp"></span>
-<span class="grup"><span class="lb">IA</span><button type="button" id="b_ia" title="Crear un modelo describiéndolo en texto">🤖 IA…</button></span>
+<span class="grup"><span class="lb">IA</span><button type="button" id="b_ia" title="Crear un modelo describiéndolo en texto (IA gratuita integrada, sin clave)">🤖 IA…</button></span>
 <span class="sp"></span>
 <span class="grup"><span class="lb">Ejemplos</span><button type="button" id="b_ex4">Edificio</button><button type="button" id="b_ex">Pórtico</button><button type="button" id="b_ex2">Viga suelo</button><button type="button" id="b_ex3">Viga acero</button></span>
 <span class="sp"></span>
@@ -256,17 +262,25 @@ body{flex-direction:row;overflow:hidden}
  <b>🤖 Crear modelo con IA</b>
  <div class="m" style="margin-top:3px">Describe la estructura con tus palabras. La IA solo arma la geometría y cargas básicas (malla regular); el análisis lo calcula Zapel.</div>
  <label for="iaTxt">Descripción</label>
- <textarea id="iaTxt" rows="4" placeholder="Ej.: Edificio de 5 niveles, 4 vanos de 6 m en X y 3 de 5 m en Y, entrepisos de 3.2 m, muros de corte de 200 mm en los ejes extremos en Y, columnas 450 mm, vigas 300×600, unidades SI"></textarea>
+ <textarea id="iaTxt" rows="4" maxlength="2000" placeholder="Ej.: Edificio de 5 niveles, 4 vanos de 6 m en X y 3 de 5 m en Y, entrepisos de 3.2 m, muros de corte de 200 mm en los ejes extremos en Y, columnas 450 mm, vigas 300×600, unidades SI"></textarea>
  <label class="ck" style="display:none"><input type="checkbox" id="iaPrev" checked> Modificar el modelo anterior (en vez de empezar de nuevo)</label>
- <label for="iaModel">Modelo de OpenRouter</label>
- <input type="text" id="iaModel" list="iaModels" value="openrouter/free" autocomplete="off" spellcheck="false">
- <datalist id="iaModels"><option value="openrouter/free"></datalist>
- <div class="m" style="font-size:11px">«openrouter/free» elige un modelo gratuito disponible. También puedes pegar el nombre exacto de otro modelo que termine en :free (lista en openrouter.ai/collections/free-models).</div>
- <label for="iaKey">Clave de API de OpenRouter</label>
- <input type="password" id="iaKey" autocomplete="off" placeholder="sk-or-…">
- <label class="ck"><input type="checkbox" id="iaRec" checked> Recordar la clave en este navegador</label>
- <div class="m" style="font-size:11px">Clave gratis en openrouter.ai/keys. Se guarda solo en tu navegador y se envía únicamente a OpenRouter. Los modelos gratuitos tienen límite de uso y pueden registrar lo que escribes: no incluyas datos confidenciales.</div>
- <div id="iaSt" class="m"></div>
+ <label for="iaProv">Motor de IA</label>
+ <select id="iaProv" title="Modelo de lenguaje que interpreta la descripción">
+  <option value="libre" selected>Gratis · sin clave ni registro (recomendado)</option>
+  <option value="openrouter">OpenRouter · con tu clave (opcional)</option>
+ </select>
+ <div id="iaLibreInfo" class="m" style="font-size:11px">Usa un modelo gratuito público (GPT-OSS 20B, servicio Pollinations) desde el propio programa: no hay que instalar nada ni pegar claves. Límites orientativos: ~1 respuesta cada 45 s y ~100 al día. Ese servicio puede guardar lo que escribes: no incluyas datos confidenciales.</div>
+ <div id="iaORBox" style="display:none">
+  <label for="iaModel">Modelo de OpenRouter</label>
+  <input type="text" id="iaModel" list="iaModels" value="openrouter/free" autocomplete="off" spellcheck="false">
+  <datalist id="iaModels"><option value="openrouter/free"></datalist>
+  <div class="m" style="font-size:11px">«openrouter/free» elige un modelo gratuito disponible. También puedes pegar el nombre exacto de otro modelo que termine en :free (lista en openrouter.ai/collections/free-models).</div>
+  <label for="iaKey">Clave de API de OpenRouter</label>
+  <input type="password" id="iaKey" autocomplete="off" placeholder="sk-or-…">
+  <label class="ck"><input type="checkbox" id="iaRec" checked> Recordar la clave en este navegador</label>
+  <div class="m" style="font-size:11px">Clave gratis en openrouter.ai/keys. Se guarda solo en tu navegador y se envía únicamente a OpenRouter. Los modelos gratuitos tienen límite de uso y pueden registrar lo que escribes: no incluyas datos confidenciales.</div>
+ </div>
+ <div id="iaSt" class="m" role="status" aria-live="polite"></div>
  <div id="iaJsonW" style="display:none"><label for="iaJson">Especificación generada (editable; también puedes pegar aquí un JSON de otra IA)</label><textarea id="iaJson" rows="9" spellcheck="false"></textarea></div>
 </div><div class="smact"><button type="button" id="iaGen" class="go">Generar con IA</button><button type="button" id="iaOk">Construir modelo</button><button type="button" id="iaX">Cerrar</button></div></div></div>
 <input type="file" id="fo" accept=".json,application/json" style="display:none">
@@ -3534,7 +3548,9 @@ if($('lang'))$('lang').onchange=()=>setLang($('lang').value);
 try{const lg=localStorage.getItem('zapel-lang');if(lg==='en'){LANG='en';if($('lang'))$('lang').value='en'}}catch(e){}
 if(LANG==='en')setLang('en');else applyLang(document.body);
 
-/* ---------- IA: crear el modelo desde una descripción en texto (OpenRouter · modelos gratuitos) ----------
+/* ---------- IA: crear el modelo desde una descripción en texto ----------
+   Motor predeterminado: servicio gratuito sin clave (Pollinations · GPT-OSS 20B), ya integrado en
+   el programa (no hay que registrarse). Opcional: OpenRouter con clave propia, para más cuota.
    La IA NO calcula nada: solo traduce el texto a una «especificación» JSON compacta (malla regular).
    Esta función la valida y construye el modelo con el mismo formato que Guardar/Abrir; el análisis lo hace Zapel. */
 const IA_SYS=`Eres un asistente de ingeniería estructural integrado en el programa Zapel773DWall.
@@ -3560,7 +3576,8 @@ Muros: "dir":"x" = muro paralelo a X sobre la línea de ejes Y número "at" (0 a
 Los índices de ejes comienzan en 0 (el primer eje). "s0" y "s1" son entrepisos, desde 1 (primer nivel) hasta el último, ambos inclusive. "t" = espesor (in o mm).
 Si ys está vacío solo puede haber muros dir "x" con at 0.
 Reglas: si el usuario no da unidades usa "IM". Si faltan datos, supón valores típicos (columnas 18 in, vigas 14x24 in, losa 6 in, q 50 psf, fc 4 ksi, base fixed) y dilo en "notes".
-Si te dan un número de vanos y un ancho (por ejemplo «3 vanos de 20 ft»), repite el ancho en el arreglo. Nunca inventes elementos que el usuario no pidió (muros, losas) salvo losa por defecto si habla de edificio con pisos.
+Unidades y tipos (muy importante): con units="SI" usa xs/ys/stories en METROS (6, 3.2), columns y beams en MILÍMETROS (450, 300x600), slab.t en MILÍMETROS (150), slab.q en kPa (2.4) y fc en MPa (28). Con units="IM" usa xs/ys/stories en PIES (20, 12), columns y beams en PULGADAS (18, 14x24), slab.t en PULGADAS (6), slab.q en psf (50) y fc en ksi (4). "base" debe ser exactamente "fixed" o "pinned". "walls" debe ser una lista JSON (puede ser []), y "slab.t" y "slab.q" deben ser números (no null, no objetos).
+Si te dan un número de vanos y un ancho (por ejemplo «3 vanos de 20 ft»), repite el ancho en el arreglo. «xs», «ys» y «stories» deben ser SIEMPRE arreglos JSON de números (por ejemplo "stories":[12,12]), nunca un número suelto. Nunca inventes elementos que el usuario no pidió (muros, losas) salvo losa por defecto si habla de edificio con pisos.
 Ejemplo: «Edificio de 4 niveles, 3 vanos de 20 ft en X y 2 de 24 ft en Y, entrepisos de 12 ft, muros de corte en los ejes extremos en X» →
 {"units":"IM","xs":[20,20,20],"ys":[24,24],"stories":[12,12,12,12],"columns":{"b":18,"h":18},"beams":{"b":14,"h":24},"slab":{"t":6,"q":50},"fc":4,"base":"fixed","walls":[{"dir":"x","at":0,"from":0,"to":3,"s0":1,"s1":4,"t":8},{"dir":"x","at":2,"from":0,"to":3,"s0":1,"s1":4,"t":8}],"notes":"Secciones, losa y carga típicas supuestas."}`;
 
@@ -3569,9 +3586,11 @@ let IA_LAST=null;
 function iaClean(s){
  if(!s||typeof s!=='object'||Array.isArray(s))throw new Error('La especificación debe ser un objeto JSON.');
  const av=[],u=s.units==='SI'?'SI':'IM';
- const num=(v,def,lo,hi)=>{v=+v;return isFinite(v)?Math.min(hi,Math.max(lo,v)):def};
+ const num=(v,def,lo,hi)=>{if(v==null||v==='')return def;v=+v;return isFinite(v)?Math.min(hi,Math.max(lo,v)):def};
  const arr=(a,max)=>Array.isArray(a)?a.slice(0,max).map(v=>+v).filter(v=>isFinite(v)&&v>0):[];
- const xs=arr(s.xs,20),ys=arr(s.ys,20),st=arr(s.stories,40);
+ const xs=arr(s.xs,20),st=arr(s.stories,40);
+ let ys=arr(s.ys,20);
+ if(typeof s.ys==='number'&&s.ys>0){ys=[+s.ys];av.push('«ys» vino como número: se interpretó como un solo vano de '+s.ys+(u=='IM'?' ft':' m')+'.')}
  if(!xs.length)throw new Error('Falta «xs» (anchos de vano en X).');
  if(!st.length)throw new Error('Falta «stories» (alturas de entrepiso).');
  const IM=u=='IM',Lm=v=>IM?v*0.3048:v,sec=v=>IM?v*0.0254:v/1000;
@@ -3595,7 +3614,8 @@ function iaClean(s){
   for(let j=0;j<ny;j++)for(let i=0;i<nx-1;i++)bar(id(i,j,k),id(i+1,j,k),bm);
   if(!pl)for(let i=0;i<nx;i++)for(let j=0;j<ny-1;j++)bar(id(i,j,k),id(i,j+1,k),bm)}
  /* muros */
- const mw=[];let wl=Array.isArray(s.walls)?s.walls.slice(0,60):[];
+ const mw=[];if(s.walls&&!Array.isArray(s.walls))av.push('«walls» no es una lista: se ignoraron los muros. Indica los muros como lista (o vuelve a generar).');
+ let wl=Array.isArray(s.walls)?s.walls.slice(0,60):[];
  wl.forEach((w,q)=>{
   if(!w||(w.dir!='x'&&w.dir!='y')){av.push('Muro '+(q+1)+' ignorado (dir debe ser "x" o "y").');return}
   const dx=w.dir=='x',at=Math.round(+w.at),lim=dx?ny-1:nx-1,ln=dx?nx-1:ny-1;
@@ -3622,12 +3642,73 @@ function iaClean(s){
  return{d,resumen,av,notes:typeof s.notes=='string'?s.notes.slice(0,300):'',spec:{units:u}}}
 
 function iaExtraeJSON(t){
- t=String(t||'').replace(/```(?:json)?/gi,'');
- const a=t.indexOf('{'),z=t.lastIndexOf('}');
- if(a<0||z<=a)throw new Error('La IA no devolvió un JSON. Reintenta o reformula la descripción.');
- try{return JSON.parse(t.slice(a,z+1))}catch(e){throw new Error('El JSON de la IA está mal formado. Reintenta (los modelos gratuitos a veces fallan).')}}
+ t=String(t||'').replace(/```(?:json)?/gi,'').trim();
+ try{return JSON.parse(t)}catch(e){}
+ const a=t.indexOf('{');
+ if(a<0)throw new Error('La IA no devolvió un JSON. Reintenta o reformula la descripción.');
+ let d=0,ins=false,esc=false;
+ for(let i=a;i<t.length;i++){
+  const ch=t[i];
+  if(ins){if(esc)esc=false;else if(ch==='\\')esc=true;else if(ch==='"')ins=false}
+  else if(ch==='"')ins=true;
+  else if(ch==='{')d++;
+  else if(ch==='}'){
+   d--;
+   if(d===0){
+    try{return JSON.parse(t.slice(a,i+1))}
+    catch(e2){throw new Error('El JSON de la IA está mal formado. Reintenta (los modelos gratuitos a veces fallan).')}}}}
+ throw new Error('La IA no devolvió un JSON. Reintenta o reformula la descripción.')}
 
-async function iaLlama(key,model,msgs){
+function iaRetrySeg(t){
+ const m=/retry after (\d+)\s*s/i.exec(t)||/retry_after["':\s]+(\d+)/i.exec(t);
+ return m?+m[1]:0}
+
+function iaContenido(j){
+ if(typeof j==='string')return j;
+ if(j&&j.choices&&j.choices[0]){
+  const c=j.choices[0].message&&j.choices[0].message.content;
+  if(typeof c==='string')return c;
+  if(Array.isArray(c))return c.map(x=>typeof x==='string'?x:(x&&x.text)||'').join('')}
+ return null}
+
+/* Motor gratuito integrado: servicio público Pollinations (GPT-OSS 20B), sin clave ni registro.
+   Se prefiere GET: es una petición «simple» (sin preflight CORS) y funciona desde file://.
+   Si la URL quedaría demasiado larga, se envía por POST al endpoint compatible con OpenAI. */
+function iaLibreResp(r,t){
+ if(r.status===402){const s=(r.headers&&+r.headers.get('Retry-After'))||iaRetrySeg(t)||0;throw new Error('El servicio gratuito limita a aprox. 1 respuesta cada 45 s (≈100 al día).'+(s?' Espera '+s+' s y pulsa «Generar con IA» otra vez.':' Espera unos 45 s y reintenta.'))}
+ if(r.status===413||r.status===414||r.status===431)throw new Error('La descripción es demasiado larga para el servicio gratuito. Acórtala a una o dos frases y reintenta.');
+ if(r.status===422)throw new Error('La respuesta gratuita salió incompleta. Reintenta (a veces ayuda describir la estructura con menos detalle).');
+ if(r.status===429)throw new Error('Demasiadas solicitudes al servicio gratuito. Espera un minuto y reintenta.');
+ if(!r.ok)throw new Error('Servicio gratuito: HTTP '+r.status+'. Reintenta en unos segundos.');
+ let j=null;try{j=JSON.parse(t)}catch(e){}
+ if(j&&j.error)throw new Error('Servicio gratuito: '+((j.error.message)||j.error.code||'error'));
+ return iaContenido(j)||t}
+
+async function iaLibrePost(msgs){
+ const ac=new AbortController(),to=setTimeout(()=>ac.abort(),180000);
+ let r,t;
+ try{
+  r=await fetch('https://text.pollinations.ai/openai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:msgs,temperature:0.2}),signal:ac.signal});
+  t=await r.text()
+ }catch(e){throw new Error(e.name=='AbortError'?'El servicio gratuito tardó demasiado (más de 3 min). Reintenta.':'No se pudo conectar con el servicio gratuito de IA. Si la descripción es larga, acórtala a una o dos frases; si no, revisa la conexión a internet.')}
+ finally{clearTimeout(to)}
+ return iaLibreResp(r,t)}
+
+async function iaLibre(msgs){
+ const sys=((msgs||[]).find(m=>m.role==='system')||{}).content||'';
+ const usr=((msgs||[]).find(m=>m.role==='user')||{}).content||'';
+ if(sys.length+usr.length>14000)throw new Error('La descripción es demasiado larga para el servicio gratuito. Resúmela.');
+ const url='https://text.pollinations.ai/'+encodeURIComponent(usr)+'?system='+encodeURIComponent(sys)+'&json=true&temperature=0.2';
+ if(url.length>7000)return iaLibrePost(msgs);
+ const ac=new AbortController(),to=setTimeout(()=>ac.abort(),180000);
+ let r,t;
+ try{r=await fetch(url,{signal:ac.signal,cache:'no-store'});t=await r.text()}
+ catch(e){throw new Error(e.name=='AbortError'?'El servicio gratuito tardó demasiado (más de 3 min). Reintenta.':'No se pudo conectar con el servicio gratuito de IA. Revisa la conexión a internet (y que un cortafuegos no bloquee text.pollinations.ai). También puedes usar «OpenRouter · con tu clave».')}
+ finally{clearTimeout(to)}
+ if(r.status===414||r.status===431)return iaLibrePost(msgs);
+ return iaLibreResp(r,t)}
+
+async function iaOpenRouter(key,model,msgs){
  const ac=new AbortController(),to=setTimeout(()=>ac.abort(),120000),h={'Content-Type':'application/json','Authorization':'Bearer '+key,'X-Title':'Zapel773DWall'};
  if(/^https?:/.test(location.origin))h['HTTP-Referer']=location.origin;
  let r,t;
@@ -3642,6 +3723,9 @@ async function iaLlama(key,model,msgs){
  if(!c)throw new Error('El modelo no devolvió texto (suele ser congestión del modelo gratuito). Reintenta o prueba otro.');
  return c}
 
+async function iaLlama(prov,key,model,msgs){
+ return prov==='openrouter'?iaOpenRouter(key,model,msgs):iaLibre(msgs)}
+
 function iaAplica(m){
  const mm=parseModel(m.d);
  cu=mm.units;SW_ON=mm.sw!==false;if($('swOn'))$('swOn').checked=SW_ON;$('un').value=cu;$('gs').value=cu=='SI'?.5:1;$('lv').value=0;
@@ -3653,18 +3737,32 @@ function iaAplica(m){
 (function(){
  const w=$('iaw');if(!w)return;
  const st=$('iaSt'),setSt=(t,er)=>{st.className=er?'er':'m';st.textContent=t};
- try{const k=localStorage.getItem('zapel-or-key');if(k)$('iaKey').value=k;const m=localStorage.getItem('zapel-or-model');if(m)$('iaModel').value=m}catch(e){}
- $('b_ia').onclick=()=>{w.style.display='flex';$('iaPrev').parentNode.style.display=IA_LAST?'':'none'};
+ const provSel=$('iaProv'),orBox=$('iaORBox'),libreInfo=$('iaLibreInfo');
+ const syncProv=()=>{const or=provSel.value==='openrouter';orBox.style.display=or?'':'none';libreInfo.style.display=or?'none':'';try{localStorage.setItem('zapel-ia-prov',provSel.value)}catch(e){}};
+ const provChange=()=>{syncProv();setSt('');$('iaJsonW').style.display='none'};
+ try{
+  const k=localStorage.getItem('zapel-or-key');
+  if(localStorage.getItem('zapel-ia-prov')==='openrouter'&&k)provSel.value='openrouter';
+  if(k)$('iaKey').value=k;
+  const m=localStorage.getItem('zapel-or-model');if(m)$('iaModel').value=m
+ }catch(e){}
+ syncProv();provSel.onchange=provChange;
+ $('b_ia').onclick=()=>{w.style.display='flex';$('iaPrev').parentNode.style.display=IA_LAST?'':'none';setTimeout(()=>{try{$('iaTxt').focus()}catch(e){}},60)};
  $('iaX').onclick=()=>{w.style.display='none'};
+ addEventListener('keydown',e=>{if(e.key==='Escape'&&w.style.display==='flex'){w.style.display='none'}});
  $('iaGen').onclick=async()=>{
-  const key=$('iaKey').value.trim(),model=$('iaModel').value.trim()||'openrouter/free',txt=$('iaTxt').value.trim();
-  if(!txt){setSt('Describe primero la estructura.',1);return}
-  if(!key){setSt('Pega tu clave de OpenRouter (gratis en openrouter.ai/keys).',1);return}
-  try{if($('iaRec').checked){localStorage.setItem('zapel-or-key',key);localStorage.setItem('zapel-or-model',model)}else{localStorage.removeItem('zapel-or-key')}}catch(e){}
-  let u=txt;if(IA_LAST&&$('iaPrev').checked)u='Especificación actual (modifícala según el pedido y devuélvela COMPLETA):\n'+JSON.stringify(IA_LAST)+'\n\nPedido: '+txt;
-  $('iaGen').disabled=true;setSt('Consultando a la IA… (los modelos gratuitos pueden tardar)');
+  const prov=provSel.value,key=$('iaKey').value.trim(),model=$('iaModel').value.trim()||'openrouter/free',txt=$('iaTxt').value.trim();
+  if(!txt){setSt('Describe primero la estructura.',1);$('iaTxt').focus();return}
+  if(prov==='openrouter'&&!key){setSt('Pega tu clave de OpenRouter (gratis en openrouter.ai/keys) o vuelve a «Gratis · sin clave ni registro».',1);return}
   try{
-   const out=await iaLlama(key,model,[{role:'system',content:IA_SYS},{role:'user',content:u}]);
+   localStorage.setItem('zapel-ia-prov',prov);
+   if(prov==='openrouter'){if($('iaRec').checked){localStorage.setItem('zapel-or-key',key);localStorage.setItem('zapel-or-model',model)}else{localStorage.removeItem('zapel-or-key')}}
+  }catch(e){}
+  let u=txt;if(IA_LAST&&$('iaPrev').checked)u='Especificación actual (modifícala según el pedido y devuélvela COMPLETA):\n'+JSON.stringify(IA_LAST)+'\n\nPedido: '+txt;
+  $('iaGen').disabled=true;
+  setSt(prov==='openrouter'?'Consultando a OpenRouter… (los modelos gratuitos pueden tardar)':'Consultando el modelo gratuito integrado… (suele tardar entre 5 y 40 s)');
+  try{
+   const out=await iaLlama(prov,key,model,[{role:'system',content:IA_SYS},{role:'user',content:u}]);
    const sp=iaExtraeJSON(out);$('iaJson').value=JSON.stringify(sp,null,1);$('iaJsonW').style.display='';
    const m=iaClean(sp);setSt('Listo. '+m.resumen+(m.notes?' Supuestos: '+m.notes:'')+(m.av.length?' ⚠ '+m.av.join(' '):'')+' Revisa y pulsa «Construir modelo».')}
   catch(e){setSt(e.message||String(e),1)}
